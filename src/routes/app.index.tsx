@@ -13,8 +13,22 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, User as UserIcon, Tag, Clock } from "lucide-react";
+import { EVENT_CATEGORIES, categoryLabel } from "@/lib/liturgical";
 
 export const Route = createFileRoute("/app/")({
   component: CalendarPage,
@@ -28,6 +42,7 @@ type EventRow = {
   starts_at: string;
   ends_at: string;
   color: string;
+  category: string;
 };
 
 type ProfileRow = { id: string; full_name: string | null };
@@ -47,6 +62,15 @@ function toLocalInput(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+function fmtDateTime(iso: string) {
+  return new Date(iso).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function CalendarPage() {
   const { user } = useAuth();
@@ -55,7 +79,6 @@ function CalendarPage() {
   const [profiles, setProfiles] = useState<Record<string, ProfileRow>>({});
   const [loading, setLoading] = useState(true);
 
-  // Modal state
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<EventRow | null>(null);
   const [form, setForm] = useState({
@@ -64,6 +87,7 @@ function CalendarPage() {
     starts_at: toLocalInput(new Date()),
     ends_at: toLocalInput(new Date(Date.now() + 60 * 60 * 1000)),
     color: COLORS[0],
+    category: "outro",
   });
 
   const monthStart = useMemo(() => startOfMonth(cursor), [cursor]);
@@ -101,13 +125,11 @@ function CalendarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthStart.getTime()]);
 
-  // Build calendar grid
   const grid = useMemo(() => {
     const first = startOfMonth(cursor);
-    const startWeekday = first.getDay(); // 0..6 (Sun)
+    const startWeekday = first.getDay();
     const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
     const cells: { date: Date; inMonth: boolean }[] = [];
-    // Leading days (prev month)
     for (let i = startWeekday - 1; i >= 0; i--) {
       cells.push({
         date: new Date(cursor.getFullYear(), cursor.getMonth(), -i),
@@ -149,6 +171,7 @@ function CalendarPage() {
       starts_at: toLocalInput(base),
       ends_at: toLocalInput(new Date(base.getTime() + 60 * 60 * 1000)),
       color: COLORS[0],
+      category: "outro",
     });
     setOpen(true);
   }
@@ -161,6 +184,7 @@ function CalendarPage() {
       starts_at: toLocalInput(new Date(ev.starts_at)),
       ends_at: toLocalInput(new Date(ev.ends_at)),
       color: ev.color,
+      category: ev.category ?? "outro",
     });
     setOpen(true);
   }
@@ -177,6 +201,7 @@ function CalendarPage() {
       starts_at: new Date(form.starts_at).toISOString(),
       ends_at: new Date(form.ends_at).toISOString(),
       color: form.color,
+      category: form.category,
       user_id: user.id,
     };
     if (editing) {
@@ -206,160 +231,214 @@ function CalendarPage() {
   const todayKey = ymd(new Date());
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, -1))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="font-display text-3xl capitalize text-foreground min-w-[220px]">
-            {monthLabel}
-          </h1>
-          <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, 1))}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" onClick={() => setCursor(startOfMonth(new Date()))}>
-            Hoje
-          </Button>
-        </div>
-        <Button onClick={() => openCreate(new Date())}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo evento
-        </Button>
-      </div>
-
-      <div className="rounded-2xl border bg-card shadow-[var(--shadow-card)] overflow-hidden">
-        <div className="grid grid-cols-7 border-b bg-secondary/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {weekDays.map((w) => (
-            <div key={w} className="px-2 py-2 text-center">
-              {w}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7">
-          {grid.map(({ date, inMonth }, i) => {
-            const key = ymd(date);
-            const dayEvents = eventsByDay.get(key) ?? [];
-            const isToday = key === todayKey;
-            return (
-              <button
-                key={i}
-                onClick={() => openCreate(date)}
-                className={`min-h-[100px] border-b border-r p-2 text-left transition-colors hover:bg-accent/40 ${
-                  inMonth ? "" : "bg-muted/30 text-muted-foreground"
-                } ${isToday ? "ring-2 ring-inset ring-ring/50" : ""}`}
-              >
-                <div className={`mb-1 text-sm font-semibold ${isToday ? "text-primary" : ""}`}>
-                  {date.getDate()}
-                </div>
-                <div className="space-y-1">
-                  {dayEvents.slice(0, 3).map((e) => (
-                    <div
-                      key={e.id}
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        openEdit(e);
-                      }}
-                      className="truncate rounded-md px-2 py-1 text-xs font-medium text-white shadow-sm"
-                      style={{ backgroundColor: e.color }}
-                      title={`${e.title} — ${profiles[e.user_id]?.full_name ?? ""}`}
-                    >
-                      {e.title}
-                    </div>
-                  ))}
-                  {dayEvents.length > 3 && (
-                    <div className="text-[10px] text-muted-foreground">
-                      +{dayEvents.length - 3} mais
-                    </div>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {loading && <p className="text-center text-sm text-muted-foreground">Carregando…</p>}
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing ? "Editar evento" : "Novo evento"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Título</Label>
-              <Input
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                maxLength={200}
-              />
-            </div>
-            <div>
-              <Label>Descrição</Label>
-              <Textarea
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                rows={3}
-                maxLength={2000}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Início</Label>
-                <Input
-                  type="datetime-local"
-                  value={form.starts_at}
-                  onChange={(e) => setForm({ ...form, starts_at: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Fim</Label>
-                <Input
-                  type="datetime-local"
-                  value={form.ends_at}
-                  onChange={(e) => setForm({ ...form, ends_at: e.target.value })}
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Cor</Label>
-              <div className="mt-2 flex gap-2">
-                {COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setForm({ ...form, color: c })}
-                    className={`h-8 w-8 rounded-full border-2 transition-transform ${
-                      form.color === c ? "scale-110 border-foreground" : "border-transparent"
-                    }`}
-                    style={{ backgroundColor: c }}
-                    aria-label={`Cor ${c}`}
-                  />
-                ))}
-              </div>
-            </div>
-            {editing && editing.user_id !== user?.id && (
-              <p className="text-xs text-muted-foreground">
-                Criado por outro usuário — você não pode editar.
-              </p>
-            )}
-          </div>
-          <DialogFooter className="gap-2">
-            {editing && editing.user_id === user?.id && (
-              <Button variant="ghost" onClick={remove} className="mr-auto text-destructive">
-                <Trash2 className="mr-2 h-4 w-4" /> Excluir
-              </Button>
-            )}
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
+    <TooltipProvider delayDuration={150}>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, -1))}>
+              <ChevronLeft className="h-4 w-4" />
             </Button>
-            {(!editing || editing.user_id === user?.id) && (
-              <Button onClick={save}>Salvar</Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            <h1 className="font-display text-3xl capitalize text-foreground min-w-[220px]">
+              {monthLabel}
+            </h1>
+            <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, 1))}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" onClick={() => setCursor(startOfMonth(new Date()))}>
+              Hoje
+            </Button>
+          </div>
+          <Button onClick={() => openCreate(new Date())}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo evento
+          </Button>
+        </div>
+
+        <div className="rounded-2xl border bg-card shadow-[var(--shadow-card)] overflow-hidden">
+          <div className="grid grid-cols-7 border-b bg-secondary/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {weekDays.map((w) => (
+              <div key={w} className="px-2 py-2 text-center">
+                {w}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7">
+            {grid.map(({ date, inMonth }, i) => {
+              const key = ymd(date);
+              const dayEvents = eventsByDay.get(key) ?? [];
+              const isToday = key === todayKey;
+              return (
+                <button
+                  key={i}
+                  onClick={() => openCreate(date)}
+                  className={`min-h-[100px] border-b border-r p-2 text-left transition-colors hover:bg-accent/40 ${
+                    inMonth ? "" : "bg-muted/30 text-muted-foreground"
+                  } ${isToday ? "ring-2 ring-inset ring-ring/50" : ""}`}
+                >
+                  <div className={`mb-1 text-sm font-semibold ${isToday ? "text-primary" : ""}`}>
+                    {date.getDate()}
+                  </div>
+                  <div className="space-y-1">
+                    {dayEvents.slice(0, 3).map((e) => {
+                      const author = profiles[e.user_id]?.full_name ?? "Usuário";
+                      return (
+                        <Tooltip key={e.id}>
+                          <TooltipTrigger asChild>
+                            <div
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                openEdit(e);
+                              }}
+                              className="truncate rounded-md px-2 py-1 text-xs font-medium text-white shadow-sm cursor-pointer"
+                              style={{ backgroundColor: e.color }}
+                            >
+                              {e.title}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="top"
+                            className="max-w-xs space-y-1.5 bg-card text-card-foreground border shadow-lg p-3"
+                          >
+                            <div className="font-display text-sm font-semibold flex items-center gap-2">
+                              <span
+                                className="h-2.5 w-2.5 rounded-full"
+                                style={{ backgroundColor: e.color }}
+                              />
+                              {e.title}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {fmtDateTime(e.starts_at)} → {fmtDateTime(e.ends_at)}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              <UserIcon className="h-3 w-3" />
+                              Agendado por <strong className="text-foreground">{author}</strong>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              <Tag className="h-3 w-3" />
+                              {categoryLabel(e.category)}
+                            </div>
+                            {e.description && (
+                              <p className="text-[11px] text-foreground/80 pt-1 border-t">
+                                {e.description}
+                              </p>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                    {dayEvents.length > 3 && (
+                      <div className="text-[10px] text-muted-foreground">
+                        +{dayEvents.length - 3} mais
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {loading && <p className="text-center text-sm text-muted-foreground">Carregando…</p>}
+
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editing ? "Editar evento" : "Novo evento"}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Título</Label>
+                <Input
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  maxLength={200}
+                />
+              </div>
+              <div>
+                <Label>Tipo de evento</Label>
+                <Select
+                  value={form.category}
+                  onValueChange={(v) => setForm({ ...form, category: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EVENT_CATEGORIES.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Descrição</Label>
+                <Textarea
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  rows={3}
+                  maxLength={2000}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Início</Label>
+                  <Input
+                    type="datetime-local"
+                    value={form.starts_at}
+                    onChange={(e) => setForm({ ...form, starts_at: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Fim</Label>
+                  <Input
+                    type="datetime-local"
+                    value={form.ends_at}
+                    onChange={(e) => setForm({ ...form, ends_at: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>Cor</Label>
+                <div className="mt-2 flex gap-2">
+                  {COLORS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setForm({ ...form, color: c })}
+                      className={`h-8 w-8 rounded-full border-2 transition-transform ${
+                        form.color === c ? "scale-110 border-foreground" : "border-transparent"
+                      }`}
+                      style={{ backgroundColor: c }}
+                      aria-label={`Cor ${c}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              {editing && editing.user_id !== user?.id && (
+                <p className="text-xs text-muted-foreground">
+                  Criado por outro usuário — você não pode editar.
+                </p>
+              )}
+            </div>
+            <DialogFooter className="gap-2">
+              {editing && editing.user_id === user?.id && (
+                <Button variant="ghost" onClick={remove} className="mr-auto text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                Cancelar
+              </Button>
+              {(!editing || editing.user_id === user?.id) && (
+                <Button onClick={save}>Salvar</Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 }
