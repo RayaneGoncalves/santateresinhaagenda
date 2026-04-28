@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useNavigate, Link } from "@tanstack/react-rout
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { LogOut, CalendarDays, NotebookPen } from "lucide-react";
+import { LogOut, CalendarDays, NotebookPen, Church } from "lucide-react";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -36,6 +36,12 @@ function AppLayout() {
               <Button variant="ghost" size="sm">
                 <CalendarDays className="mr-2 h-4 w-4" />
                 Calendário
+              </Button>
+            </Link>
+            <Link to="/app/liturgical">
+              <Button variant="ghost" size="sm">
+                <Church className="mr-2 h-4 w-4" />
+                Litúrgico
               </Button>
             </Link>
             <Link to="/app/notes">

@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppNotesRouteImport } from './routes/app.notes'
+import { Route as AppLiturgicalRouteImport } from './routes/app.liturgical'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -40,17 +41,24 @@ const AppNotesRoute = AppNotesRouteImport.update({
   path: '/notes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLiturgicalRoute = AppLiturgicalRouteImport.update({
+  id: '/liturgical',
+  path: '/liturgical',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/app/liturgical': typeof AppLiturgicalRoute
   '/app/notes': typeof AppNotesRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/liturgical': typeof AppLiturgicalRoute
   '/app/notes': typeof AppNotesRoute
   '/app': typeof AppIndexRoute
 }
@@ -59,15 +67,23 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/app/liturgical': typeof AppLiturgicalRoute
   '/app/notes': typeof AppNotesRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/auth' | '/app/notes' | '/app/'
+  fullPaths: '/' | '/app' | '/auth' | '/app/liturgical' | '/app/notes' | '/app/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/app/notes' | '/app'
-  id: '__root__' | '/' | '/app' | '/auth' | '/app/notes' | '/app/'
+  to: '/' | '/auth' | '/app/liturgical' | '/app/notes' | '/app'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/app/liturgical'
+    | '/app/notes'
+    | '/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -113,15 +129,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppNotesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/liturgical': {
+      id: '/app/liturgical'
+      path: '/liturgical'
+      fullPath: '/app/liturgical'
+      preLoaderRoute: typeof AppLiturgicalRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppLiturgicalRoute: typeof AppLiturgicalRoute
   AppNotesRoute: typeof AppNotesRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppLiturgicalRoute: AppLiturgicalRoute,
   AppNotesRoute: AppNotesRoute,
   AppIndexRoute: AppIndexRoute,
 }
