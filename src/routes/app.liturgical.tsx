@@ -27,7 +27,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, Trash2, Church, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, Church, Info, CalendarDays, List, Pencil } from "lucide-react";
 import { LITURGICAL_COLORS, CELEBRATION_TYPES } from "@/lib/liturgical";
 
 export const Route = createFileRoute("/app/liturgical")({
