@@ -234,17 +234,37 @@ function LiturgicalPage() {
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, -1))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="font-display text-xl capitalize min-w-[200px]">{monthLabel}</span>
-          <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, 1))}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" onClick={() => setCursor(startOfMonth(new Date()))}>
-            Hoje
-          </Button>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, -1))}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="font-display text-xl capitalize min-w-[200px]">{monthLabel}</span>
+            <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, 1))}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" onClick={() => setCursor(startOfMonth(new Date()))}>
+              Hoje
+            </Button>
+          </div>
+          <div className="inline-flex rounded-lg border bg-card p-1">
+            <Button
+              variant={view === "calendar" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setView("calendar")}
+            >
+              <CalendarDays className="mr-2 h-4 w-4" />
+              Calendário
+            </Button>
+            <Button
+              variant={view === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setView("list")}
+            >
+              <List className="mr-2 h-4 w-4" />
+              Lista do ano
+            </Button>
+          </div>
         </div>
 
         <div className="rounded-2xl border bg-card shadow-[var(--shadow-card)] overflow-hidden">
