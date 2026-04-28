@@ -59,6 +59,8 @@ function LiturgicalPage() {
   const [items, setItems] = useState<LiturgicalRow[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"calendar" | "list">("calendar");
+  const [allItems, setAllItems] = useState<LiturgicalRow[]>([]);
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<LiturgicalRow | null>(null);
@@ -74,14 +76,23 @@ function LiturgicalPage() {
     setLoading(true);
     const start = startOfMonth(cursor);
     const end = addMonths(start, 1);
-    const { data, error } = await supabase
-      .from("liturgical_events")
-      .select("*")
-      .gte("event_date", ymd(start))
-      .lt("event_date", ymd(end))
-      .order("event_date");
+    const [{ data, error }, { data: yearData }] = await Promise.all([
+      supabase
+        .from("liturgical_events")
+        .select("*")
+        .gte("event_date", ymd(start))
+        .lt("event_date", ymd(end))
+        .order("event_date"),
+      supabase
+        .from("liturgical_events")
+        .select("*")
+        .gte("event_date", `${cursor.getFullYear()}-01-01`)
+        .lte("event_date", `${cursor.getFullYear()}-12-31`)
+        .order("event_date"),
+    ]);
     if (error) toast.error(error.message);
     else setItems(data ?? []);
+    setAllItems(yearData ?? []);
 
     if (user) {
       const { data: roles } = await supabase
