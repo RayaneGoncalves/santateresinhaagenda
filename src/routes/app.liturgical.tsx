@@ -27,7 +27,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, Trash2, Church, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, Church, Info, CalendarDays, List, Pencil } from "lucide-react";
 import { LITURGICAL_COLORS, CELEBRATION_TYPES } from "@/lib/liturgical";
 
 export const Route = createFileRoute("/app/liturgical")({
@@ -59,6 +59,8 @@ function LiturgicalPage() {
   const [items, setItems] = useState<LiturgicalRow[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"calendar" | "list">("calendar");
+  const [allItems, setAllItems] = useState<LiturgicalRow[]>([]);
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<LiturgicalRow | null>(null);
@@ -74,14 +76,23 @@ function LiturgicalPage() {
     setLoading(true);
     const start = startOfMonth(cursor);
     const end = addMonths(start, 1);
-    const { data, error } = await supabase
-      .from("liturgical_events")
-      .select("*")
-      .gte("event_date", ymd(start))
-      .lt("event_date", ymd(end))
-      .order("event_date");
+    const [{ data, error }, { data: yearData }] = await Promise.all([
+      supabase
+        .from("liturgical_events")
+        .select("*")
+        .gte("event_date", ymd(start))
+        .lt("event_date", ymd(end))
+        .order("event_date"),
+      supabase
+        .from("liturgical_events")
+        .select("*")
+        .gte("event_date", `${cursor.getFullYear()}-01-01`)
+        .lte("event_date", `${cursor.getFullYear()}-12-31`)
+        .order("event_date"),
+    ]);
     if (error) toast.error(error.message);
     else setItems(data ?? []);
+    setAllItems(yearData ?? []);
 
     if (user) {
       const { data: roles } = await supabase
@@ -223,99 +234,191 @@ function LiturgicalPage() {
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, -1))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="font-display text-xl capitalize min-w-[200px]">{monthLabel}</span>
-          <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, 1))}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" onClick={() => setCursor(startOfMonth(new Date()))}>
-            Hoje
-          </Button>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, -1))}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="font-display text-xl capitalize min-w-[200px]">{monthLabel}</span>
+            <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, 1))}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" onClick={() => setCursor(startOfMonth(new Date()))}>
+              Hoje
+            </Button>
+          </div>
+          <div className="inline-flex rounded-lg border bg-card p-1">
+            <Button
+              variant={view === "calendar" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setView("calendar")}
+            >
+              <CalendarDays className="mr-2 h-4 w-4" />
+              Calendário
+            </Button>
+            <Button
+              variant={view === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setView("list")}
+            >
+              <List className="mr-2 h-4 w-4" />
+              Lista do ano
+            </Button>
+          </div>
         </div>
 
-        <div className="rounded-2xl border bg-card shadow-[var(--shadow-card)] overflow-hidden">
-          <div className="grid grid-cols-7 border-b bg-secondary/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {weekDays.map((w) => (
-              <div key={w} className="px-2 py-2 text-center">
-                {w}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7">
-            {grid.map(({ date, inMonth }, i) => {
-              const key = ymd(date);
-              const dayItems = byDay.get(key) ?? [];
-              const isToday = key === todayKey;
-              return (
-                <div
-                  key={i}
-                  onClick={() => isAdmin && openCreate(date)}
-                  className={`min-h-[100px] border-b border-r p-2 text-left transition-colors ${
-                    isAdmin ? "cursor-pointer hover:bg-accent/40" : ""
-                  } ${inMonth ? "" : "bg-muted/30 text-muted-foreground"} ${
-                    isToday ? "ring-2 ring-inset ring-ring/50" : ""
-                  }`}
-                >
-                  <div className={`mb-1 text-sm font-semibold ${isToday ? "text-primary" : ""}`}>
-                    {date.getDate()}
-                  </div>
-                  <div className="space-y-1">
-                    {dayItems.map((it) => {
-                      const meta = LITURGICAL_COLORS[it.liturgical_color] ?? LITURGICAL_COLORS.verde;
-                      return (
-                        <Tooltip key={it.id}>
-                          <TooltipTrigger asChild>
-                            <div
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                openEdit(it);
-                              }}
-                              className="truncate rounded-md border px-2 py-1 text-xs font-medium shadow-sm"
-                              style={{
-                                backgroundColor: meta.hex,
-                                color: meta.textLight ? "#fff" : "#1a1a1a",
-                                borderColor: meta.textLight ? "transparent" : "rgba(0,0,0,0.15)",
-                              }}
-                            >
-                              {it.title}
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent
-                            side="top"
-                            className="max-w-xs space-y-1.5 bg-card text-card-foreground border shadow-lg p-3"
-                          >
-                            <div className="font-display text-sm font-semibold flex items-center gap-2">
-                              <span
-                                className="h-2.5 w-2.5 rounded-full border"
-                                style={{ backgroundColor: meta.hex }}
-                              />
-                              {it.title}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground">{meta.label}</div>
-                            <div className="text-[11px] text-muted-foreground capitalize">
-                              {
-                                CELEBRATION_TYPES.find((t) => t.value === it.celebration_type)
-                                  ?.label
-                              }
-                            </div>
-                            {it.description && (
-                              <p className="text-[11px] text-foreground/80 pt-1 border-t">
-                                {it.description}
-                              </p>
-                            )}
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })}
-                  </div>
+        {view === "calendar" ? (
+          <div className="rounded-2xl border bg-card shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="grid grid-cols-7 border-b bg-secondary/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {weekDays.map((w) => (
+                <div key={w} className="px-2 py-2 text-center">
+                  {w}
                 </div>
-              );
-            })}
+              ))}
+            </div>
+            <div className="grid grid-cols-7">
+              {grid.map(({ date, inMonth }, i) => {
+                const key = ymd(date);
+                const dayItems = byDay.get(key) ?? [];
+                const isToday = key === todayKey;
+                return (
+                  <div
+                    key={i}
+                    onClick={() => isAdmin && openCreate(date)}
+                    className={`min-h-[100px] border-b border-r p-2 text-left transition-colors ${
+                      isAdmin ? "cursor-pointer hover:bg-accent/40" : ""
+                    } ${inMonth ? "" : "bg-muted/30 text-muted-foreground"} ${
+                      isToday ? "ring-2 ring-inset ring-ring/50" : ""
+                    }`}
+                  >
+                    <div className={`mb-1 text-sm font-semibold ${isToday ? "text-primary" : ""}`}>
+                      {date.getDate()}
+                    </div>
+                    <div className="space-y-1">
+                      {dayItems.map((it) => {
+                        const meta = LITURGICAL_COLORS[it.liturgical_color] ?? LITURGICAL_COLORS.verde;
+                        return (
+                          <Tooltip key={it.id}>
+                            <TooltipTrigger asChild>
+                              <div
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  openEdit(it);
+                                }}
+                                className="truncate rounded-md border px-2 py-1 text-xs font-medium shadow-sm"
+                                style={{
+                                  backgroundColor: meta.hex,
+                                  color: meta.textLight ? "#fff" : "#1a1a1a",
+                                  borderColor: meta.textLight ? "transparent" : "rgba(0,0,0,0.15)",
+                                }}
+                              >
+                                {it.title}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="top"
+                              className="max-w-xs space-y-1.5 bg-card text-card-foreground border shadow-lg p-3"
+                            >
+                              <div className="font-display text-sm font-semibold flex items-center gap-2">
+                                <span
+                                  className="h-2.5 w-2.5 rounded-full border"
+                                  style={{ backgroundColor: meta.hex }}
+                                />
+                                {it.title}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground">{meta.label}</div>
+                              <div className="text-[11px] text-muted-foreground capitalize">
+                                {
+                                  CELEBRATION_TYPES.find((t) => t.value === it.celebration_type)
+                                    ?.label
+                                }
+                              </div>
+                              {it.description && (
+                                <p className="text-[11px] text-foreground/80 pt-1 border-t">
+                                  {it.description}
+                                </p>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="rounded-2xl border bg-card shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="border-b bg-secondary/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Celebrações de {cursor.getFullYear()} — {allItems.length} no total
+            </div>
+            {allItems.length === 0 ? (
+              <p className="p-6 text-center text-sm text-muted-foreground">
+                Nenhuma celebração registrada para este ano.
+              </p>
+            ) : (
+              <ul className="divide-y">
+                {allItems.map((it) => {
+                  const meta = LITURGICAL_COLORS[it.liturgical_color] ?? LITURGICAL_COLORS.verde;
+                  const date = new Date(it.event_date + "T12:00:00");
+                  const dateLabel = date.toLocaleDateString("pt-BR", {
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "short",
+                  });
+                  const typeLabel =
+                    CELEBRATION_TYPES.find((t) => t.value === it.celebration_type)?.label ?? "";
+                  return (
+                    <li
+                      key={it.id}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-accent/30 transition-colors"
+                    >
+                      <div
+                        className="flex h-12 w-14 shrink-0 flex-col items-center justify-center rounded-lg border text-center font-display"
+                        style={{
+                          backgroundColor: meta.hex,
+                          color: meta.textLight ? "#fff" : "#1a1a1a",
+                          borderColor: meta.textLight ? "transparent" : "rgba(0,0,0,0.15)",
+                        }}
+                      >
+                        <span className="text-[10px] uppercase opacity-80 leading-none">
+                          {date.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
+                        </span>
+                        <span className="text-lg font-semibold leading-tight">
+                          {date.getDate()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-display text-base font-semibold text-foreground truncate">
+                          {it.title}
+                        </div>
+                        <div className="text-xs text-muted-foreground capitalize">
+                          {dateLabel} · {typeLabel} · {meta.label}
+                        </div>
+                        {it.description && (
+                          <p className="text-xs text-foreground/70 mt-0.5 line-clamp-2">
+                            {it.description}
+                          </p>
+                        )}
+                      </div>
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEdit(it)}
+                          aria-label="Editar"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
 
         {/* Legend */}
         <div className="rounded-2xl border bg-card p-4 shadow-[var(--shadow-card)]">
