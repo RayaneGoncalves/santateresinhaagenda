@@ -37,7 +37,7 @@ export const Route = createRootRoute({
       { name: "twitter:title", content: "Agenda — estam as grandes mudanças" },
       { property: "og:description", content: "Agenda compartilhada com calendário interativo e bloco de notas pessoais." },
       { name: "twitter:description", content: "Agenda compartilhada com calendário interativo e bloco de notas pessoais." },
-      { property: "og:image", content: "https://i.pinimg.com/736x/8e/2f/f3/8e2ff354c445ee19893a95a365d112dc.jpg" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8e812c2e-b510-4b6a-994d-9061be79d700/id-preview-a17abcae--40360db8-e654-4919-ad0d-e39cb9fc4eb3.lovable.app-1777330791119.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8e812c2e-b510-4b6a-994d-9061be79d700/id-preview-a17abcae--40360db8-e654-4919-ad0d-e39cb9fc4eb3.lovable.app-1777330791119.png" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
