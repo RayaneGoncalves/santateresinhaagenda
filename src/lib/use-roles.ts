@@ -9,6 +9,10 @@ export type AppRole =
   | "coordenacao"
   | "coordenador";
 
+type UserRoleRow = {
+  role: AppRole;
+};
+
 export function useUserRoles() {
   const { user } = useAuth();
 
@@ -23,30 +27,25 @@ export function useUserRoles() {
         return;
       }
 
-      try {
-        setLoading(true);
+      setLoading(true);
 
-        const { data, error } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id);
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
 
-        if (error) {
-          console.error("Erro ao buscar roles:", error);
-          setRoles([]);
-          return;
-        }
-
-        const mappedRoles: AppRole[] =
-          data?.map((r) => r.role as AppRole) ?? [];
-
-        setRoles(mappedRoles);
-      } catch (err) {
-        console.error("Erro inesperado:", err);
+      if (error) {
+        console.error("Erro ao buscar roles:", error);
         setRoles([]);
-      } finally {
         setLoading(false);
+        return;
       }
+
+      const typedData = (data ?? []) as UserRoleRow[];
+
+      setRoles(typedData.map((r) => r.role));
+
+      setLoading(false);
     }
 
     loadRoles();
