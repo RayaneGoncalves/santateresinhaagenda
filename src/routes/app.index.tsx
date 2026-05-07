@@ -323,6 +323,9 @@ function CalendarPage() {
                   <div className="space-y-1">
                     {dayEvents.slice(0, 3).map((e) => {
                       const author = profiles[e.user_id]?.full_name ?? "Usuário";
+                      const pastoral = pastorais.find((p) => p.id === e.pastoral_id);
+                      const pending = e.status === "pendente";
+                      const rejected = e.status === "rejeitado";
                       return (
                         <Tooltip key={e.id}>
                           <TooltipTrigger asChild>
@@ -331,10 +334,13 @@ function CalendarPage() {
                                 ev.stopPropagation();
                                 openEdit(e);
                               }}
-                              className="truncate rounded-md px-2 py-1 text-xs font-medium text-white shadow-sm cursor-pointer"
+                              className={`truncate rounded-md px-2 py-1 text-xs font-medium text-white shadow-sm cursor-pointer flex items-center gap-1 ${
+                                pending ? "opacity-70 ring-1 ring-amber-400/60" : ""
+                              } ${rejected ? "line-through opacity-50" : ""}`}
                               style={{ backgroundColor: e.color }}
                             >
-                              {e.title}
+                              {pending && <Hourglass className="h-3 w-3 shrink-0" />}
+                              <span className="truncate">{e.title}</span>
                             </div>
                           </TooltipTrigger>
                           <TooltipContent
@@ -356,9 +362,32 @@ function CalendarPage() {
                               <UserIcon className="h-3 w-3" />
                               Agendado por <strong className="text-foreground">{author}</strong>
                             </div>
+                            {pastoral && (
+                              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                <Tag className="h-3 w-3" />
+                                {pastoral.name}
+                              </div>
+                            )}
                             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                               <Tag className="h-3 w-3" />
                               {categoryLabel(e.category)}
+                            </div>
+                            <div className="text-[11px]">
+                              {pending && (
+                                <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-amber-900">
+                                  <Hourglass className="h-3 w-3" /> Aguardando aprovação
+                                </span>
+                              )}
+                              {e.status === "aprovado" && (
+                                <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-900">
+                                  <Check className="h-3 w-3" /> Aprovado
+                                </span>
+                              )}
+                              {rejected && (
+                                <span className="inline-flex items-center gap-1 rounded bg-rose-100 px-1.5 py-0.5 text-rose-900">
+                                  <X className="h-3 w-3" /> Rejeitado
+                                </span>
+                              )}
                             </div>
                             {e.description && (
                               <p className="text-[11px] text-foreground/80 pt-1 border-t">
