@@ -31,7 +31,7 @@ type Row = {
   email: string | undefined;
   full_name: string | null;
   roles: string[];
-  last_sign_in_at: string | null;
+  last_sign_in_at: string | null | undefined;
 };
 
 const ROLE_OPTIONS = [
