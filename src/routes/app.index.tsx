@@ -514,22 +514,35 @@ function CalendarPage() {
                   ))}
                 </div>
               </div>
-              {editing && editing.user_id !== user?.id && (
-                <p className="text-xs text-muted-foreground">
-                  Criado por outro usuário — você não pode editar.
-                </p>
+              {editing && (
+                <div className="rounded-md border bg-secondary/40 px-3 py-2 text-xs">
+                  Status atual: <strong>{editing.status}</strong>
+                  {editing.user_id !== user?.id && !canEditEvent(editing) && (
+                    <span className="ml-2 text-muted-foreground">(somente leitura)</span>
+                  )}
+                </div>
               )}
             </div>
             <DialogFooter className="gap-2">
-              {editing && editing.user_id === user?.id && (
+              {editing && canEditEvent(editing) && (
                 <Button variant="ghost" onClick={remove} className="mr-auto text-destructive">
                   <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                </Button>
+              )}
+              {editing && canApproveEvents && editing.status !== "rejeitado" && (
+                <Button variant="outline" onClick={() => approve("rejeitado")}>
+                  <X className="mr-2 h-4 w-4" /> Rejeitar
+                </Button>
+              )}
+              {editing && canApproveEvents && editing.status !== "aprovado" && (
+                <Button variant="outline" onClick={() => approve("aprovado")}>
+                  <Check className="mr-2 h-4 w-4" /> Aprovar
                 </Button>
               )}
               <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancelar
               </Button>
-              {(!editing || editing.user_id === user?.id) && (
+              {(!editing || canEditEvent(editing)) && (
                 <Button onClick={save}>Salvar</Button>
               )}
             </DialogFooter>
