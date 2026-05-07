@@ -23,27 +23,36 @@ export function useUserRoles() {
         return;
       }
 
-      setLoading(true);
+      try {
+        setLoading(true);
 
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
 
-      if (error) {
-        console.error("Erro ao buscar roles:", error);
+        if (error) {
+          console.error("Erro ao buscar roles:", error);
+          setRoles([]);
+          return;
+        }
+
+        const mappedRoles: AppRole[] =
+          data?.map((r) => r.role as AppRole) ?? [];
+
+        setRoles(mappedRoles);
+      } catch (err) {
+        console.error("Erro inesperado:", err);
         setRoles([]);
-      } else {
-        setRoles((data ?? []).map((r) => r.role as AppRole));
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     }
 
     loadRoles();
   }, [user]);
 
-  const has = (r: AppRole) => roles.includes(r);
+  const has = (role: AppRole) => roles.includes(role);
 
   const canApproveEvents =
     has("admin") ||
