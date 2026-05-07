@@ -427,6 +427,32 @@ function CalendarPage() {
                 />
               </div>
               <div>
+                <Label>Pastoral</Label>
+                <Select
+                  value={form.pastoral_id}
+                  onValueChange={(v) => setForm({ ...form, pastoral_id: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a pastoral" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(isAdmin || canApproveEvents
+                      ? pastorais
+                      : pastorais.filter((p) => memberships.some((m) => m.pastoral_id === p.id))
+                    ).map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!isAdmin && !canApproveEvents && memberships.length === 0 && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    Você ainda não foi adicionado a nenhuma pastoral. Peça ao administrador.
+                  </p>
+                )}
+              </div>
+              <div>
                 <Label>Tipo de evento</Label>
                 <Select
                   value={form.category}
