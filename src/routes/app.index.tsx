@@ -268,16 +268,6 @@ function CalendarPage() {
     setOpen(false);
     loadData();
   }
-
-  async function remove() {
-    if (!editing) return;
-    const { error } = await supabase.from("events").delete().eq("id", editing.id);
-    if (error) return toast.error(error.message);
-    toast.success("Evento removido");
-    setOpen(false);
-    loadData();
-  }
-
   const monthLabel = cursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
   const todayKey = ymd(new Date());
