@@ -27,8 +27,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, Trash2, User as UserIcon, Tag, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, User as UserIcon, Tag, Clock, Check, X, Hourglass } from "lucide-react";
 import { EVENT_CATEGORIES, categoryLabel } from "@/lib/liturgical";
+import { useUserRoles } from "@/lib/use-roles";
 
 export const Route = createFileRoute("/app/")({
   component: CalendarPage,
@@ -43,9 +44,14 @@ type EventRow = {
   ends_at: string;
   color: string;
   category: string;
+  pastoral_id: string | null;
+  status: "pendente" | "aprovado" | "rejeitado";
+  approved_by: string | null;
 };
 
 type ProfileRow = { id: string; full_name: string | null };
+type Pastoral = { id: string; name: string; color: string };
+type Membership = { pastoral_id: string; role: "coordenador" | "membro" };
 
 const COLORS = ["#c9847a", "#d4a574", "#a8c0a0", "#c17c74", "#8b6f5e", "#e2a9a0"];
 
