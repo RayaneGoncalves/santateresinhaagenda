@@ -9,13 +9,21 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppUsuariosRouteImport } from './routes/app.usuarios'
+import { Route as AppPastoraisRouteImport } from './routes/app.pastorais'
 import { Route as AppNotesRouteImport } from './routes/app.notes'
 import { Route as AppLiturgicalRouteImport } from './routes/app.liturgical'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -36,6 +44,16 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppUsuariosRoute = AppUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPastoraisRoute = AppPastoraisRouteImport.update({
+  id: '/pastorais',
+  path: '/pastorais',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppNotesRoute = AppNotesRouteImport.update({
   id: '/notes',
   path: '/notes',
@@ -51,15 +69,21 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/app/liturgical': typeof AppLiturgicalRoute
   '/app/notes': typeof AppNotesRoute
+  '/app/pastorais': typeof AppPastoraisRoute
+  '/app/usuarios': typeof AppUsuariosRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/app/liturgical': typeof AppLiturgicalRoute
   '/app/notes': typeof AppNotesRoute
+  '/app/pastorais': typeof AppPastoraisRoute
+  '/app/usuarios': typeof AppUsuariosRoute
   '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
@@ -67,22 +91,45 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/app/liturgical': typeof AppLiturgicalRoute
   '/app/notes': typeof AppNotesRoute
+  '/app/pastorais': typeof AppPastoraisRoute
+  '/app/usuarios': typeof AppUsuariosRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/auth' | '/app/liturgical' | '/app/notes' | '/app/'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/reset-password'
+    | '/app/liturgical'
+    | '/app/notes'
+    | '/app/pastorais'
+    | '/app/usuarios'
+    | '/app/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/app/liturgical' | '/app/notes' | '/app'
+  to:
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/app/liturgical'
+    | '/app/notes'
+    | '/app/pastorais'
+    | '/app/usuarios'
+    | '/app'
   id:
     | '__root__'
     | '/'
     | '/app'
     | '/auth'
+    | '/reset-password'
     | '/app/liturgical'
     | '/app/notes'
+    | '/app/pastorais'
+    | '/app/usuarios'
     | '/app/'
   fileRoutesById: FileRoutesById
 }
@@ -90,10 +137,18 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -122,6 +177,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/usuarios': {
+      id: '/app/usuarios'
+      path: '/usuarios'
+      fullPath: '/app/usuarios'
+      preLoaderRoute: typeof AppUsuariosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/pastorais': {
+      id: '/app/pastorais'
+      path: '/pastorais'
+      fullPath: '/app/pastorais'
+      preLoaderRoute: typeof AppPastoraisRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/notes': {
       id: '/app/notes'
       path: '/notes'
@@ -142,12 +211,16 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppLiturgicalRoute: typeof AppLiturgicalRoute
   AppNotesRoute: typeof AppNotesRoute
+  AppPastoraisRoute: typeof AppPastoraisRoute
+  AppUsuariosRoute: typeof AppUsuariosRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppLiturgicalRoute: AppLiturgicalRoute,
   AppNotesRoute: AppNotesRoute,
+  AppPastoraisRoute: AppPastoraisRoute,
+  AppUsuariosRoute: AppUsuariosRoute,
   AppIndexRoute: AppIndexRoute,
 }
 
@@ -157,16 +230,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

@@ -16,42 +16,62 @@ export type Database = {
     Tables: {
       events: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           category: string
           color: string
           created_at: string
           description: string | null
           ends_at: string
           id: string
+          pastoral_id: string | null
           starts_at: string
+          status: Database["public"]["Enums"]["event_status"]
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           category?: string
           color?: string
           created_at?: string
           description?: string | null
           ends_at: string
           id?: string
+          pastoral_id?: string | null
           starts_at: string
+          status?: Database["public"]["Enums"]["event_status"]
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           category?: string
           color?: string
           created_at?: string
           description?: string | null
           ends_at?: string
           id?: string
+          pastoral_id?: string | null
           starts_at?: string
+          status?: Database["public"]["Enums"]["event_status"]
           title?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_pastoral_id_fkey"
+            columns: ["pastoral_id"]
+            isOneToOne: false
+            referencedRelation: "pastorais"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       liturgical_events: {
         Row: {
@@ -124,6 +144,65 @@ export type Database = {
           },
         ]
       }
+      pastorais: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pastoral_members: {
+        Row: {
+          created_at: string
+          id: string
+          pastoral_id: string
+          role: Database["public"]["Enums"]["pastoral_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pastoral_id: string
+          role?: Database["public"]["Enums"]["pastoral_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pastoral_id?: string
+          role?: Database["public"]["Enums"]["pastoral_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pastoral_members_pastoral_id_fkey"
+            columns: ["pastoral_id"]
+            isOneToOne: false
+            referencedRelation: "pastorais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -174,6 +253,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_approve_events: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -181,9 +261,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_pastoral_coordenador: {
+        Args: { _pastoral_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_pastoral_member: {
+        Args: { _pastoral_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "padre" | "coordenacao" | "coordenador"
+      event_status: "pendente" | "aprovado" | "rejeitado"
+      pastoral_role: "coordenador" | "membro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -311,7 +401,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "padre", "coordenacao", "coordenador"],
+      event_status: ["pendente", "aprovado", "rejeitado"],
+      pastoral_role: ["coordenador", "membro"],
     },
   },
 } as const

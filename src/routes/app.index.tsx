@@ -27,8 +27,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, Trash2, User as UserIcon, Tag, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, User as UserIcon, Tag, Clock, Check, X, Hourglass } from "lucide-react";
 import { EVENT_CATEGORIES, categoryLabel } from "@/lib/liturgical";
+import { useUserRoles } from "@/lib/use-roles";
 
 export const Route = createFileRoute("/app/")({
   component: CalendarPage,
@@ -43,9 +44,14 @@ type EventRow = {
   ends_at: string;
   color: string;
   category: string;
+  pastoral_id: string | null;
+  status: "pendente" | "aprovado" | "rejeitado";
+  approved_by: string | null;
 };
 
 type ProfileRow = { id: string; full_name: string | null };
+type Pastoral = { id: string; name: string; color: string };
+type Membership = { pastoral_id: string; role: "coordenador" | "membro" };
 
 const COLORS = ["#c9847a", "#d4a574", "#a8c0a0", "#c17c74", "#8b6f5e", "#e2a9a0"];
 
@@ -74,9 +80,12 @@ function fmtDateTime(iso: string) {
 
 function CalendarPage() {
   const { user } = useAuth();
+  const { canApproveEvents, isAdmin } = useUserRoles();
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
   const [events, setEvents] = useState<EventRow[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProfileRow>>({});
+  const [pastorais, setPastorais] = useState<Pastoral[]>([]);
+  const [memberships, setMemberships] = useState<Membership[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [open, setOpen] = useState(false);
@@ -88,6 +97,7 @@ function CalendarPage() {
     ends_at: toLocalInput(new Date(Date.now() + 60 * 60 * 1000)),
     color: COLORS[0],
     category: "outro",
+    pastoral_id: "",
   });
 
   const monthStart = useMemo(() => startOfMonth(cursor), [cursor]);
@@ -102,14 +112,22 @@ function CalendarPage() {
       .lt("starts_at", new Date(monthEnd.getTime() + 7 * 86400000).toISOString())
       .order("starts_at");
     if (error) toast.error(error.message);
-    else setEvents(data ?? []);
+    else setEvents((data ?? []) as EventRow[]);
 
-    const { data: profs } = await supabase.from("profiles").select("id, full_name");
+    const [{ data: profs }, { data: past }, { data: mems }] = await Promise.all([
+      supabase.from("profiles").select("id, full_name"),
+      supabase.from("pastorais").select("id, name, color").order("name"),
+      user
+        ? supabase.from("pastoral_members").select("pastoral_id, role").eq("user_id", user.id)
+        : Promise.resolve({ data: [] as Membership[] }),
+    ]);
     if (profs) {
       const map: Record<string, ProfileRow> = {};
       profs.forEach((p) => (map[p.id] = p));
       setProfiles(map);
     }
+    setPastorais(past ?? []);
+    setMemberships((mems ?? []) as Membership[]);
     setLoading(false);
   }
 
@@ -172,6 +190,7 @@ function CalendarPage() {
       ends_at: toLocalInput(new Date(base.getTime() + 60 * 60 * 1000)),
       color: COLORS[0],
       category: "outro",
+      pastoral_id: memberships[0]?.pastoral_id ?? "",
     });
     setOpen(true);
   }
@@ -185,23 +204,35 @@ function CalendarPage() {
       ends_at: toLocalInput(new Date(ev.ends_at)),
       color: ev.color,
       category: ev.category ?? "outro",
+      pastoral_id: ev.pastoral_id ?? "",
     });
     setOpen(true);
   }
 
+  const canEditEvent = (ev: EventRow) => {
+    if (!user) return false;
+    if (ev.user_id === user.id) return true;
+    if (canApproveEvents) return true;
+    if (ev.pastoral_id && memberships.some((m) => m.pastoral_id === ev.pastoral_id && m.role === "coordenador"))
+      return true;
+    return false;
+  };
+
   async function save() {
     if (!user) return;
-    if (!form.title.trim()) {
-      toast.error("Título é obrigatório");
-      return;
-    }
-    const payload = {
+    if (!form.title.trim()) return toast.error("Título é obrigatório");
+    if (!form.pastoral_id) return toast.error("Selecione uma pastoral");
+    if (new Date(form.ends_at) <= new Date(form.starts_at))
+      return toast.error("Horário final deve ser após o inicial");
+
+    const payload: any = {
       title: form.title.trim().slice(0, 200),
       description: form.description.trim().slice(0, 2000) || null,
       starts_at: new Date(form.starts_at).toISOString(),
       ends_at: new Date(form.ends_at).toISOString(),
       color: form.color,
       category: form.category,
+      pastoral_id: form.pastoral_id,
       user_id: user.id,
     };
     if (editing) {
@@ -211,7 +242,7 @@ function CalendarPage() {
     } else {
       const { error } = await supabase.from("events").insert(payload);
       if (error) return toast.error(error.message);
-      toast.success("Evento criado");
+      toast.success(canApproveEvents ? "Evento criado" : "Evento enviado para aprovação");
     }
     setOpen(false);
     loadData();
@@ -226,6 +257,17 @@ function CalendarPage() {
     loadData();
   }
 
+  async function approve(status: "aprovado" | "rejeitado") {
+    if (!editing) return;
+    const { error } = await supabase
+      .from("events")
+      .update({ status, approved_by: user!.id, approved_at: new Date().toISOString() })
+      .eq("id", editing.id);
+    if (error) return toast.error(error.message);
+    toast.success(status === "aprovado" ? "Evento aprovado" : "Evento rejeitado");
+    setOpen(false);
+    loadData();
+  }
   const monthLabel = cursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
   const todayKey = ymd(new Date());
@@ -281,6 +323,9 @@ function CalendarPage() {
                   <div className="space-y-1">
                     {dayEvents.slice(0, 3).map((e) => {
                       const author = profiles[e.user_id]?.full_name ?? "Usuário";
+                      const pastoral = pastorais.find((p) => p.id === e.pastoral_id);
+                      const pending = e.status === "pendente";
+                      const rejected = e.status === "rejeitado";
                       return (
                         <Tooltip key={e.id}>
                           <TooltipTrigger asChild>
@@ -289,10 +334,13 @@ function CalendarPage() {
                                 ev.stopPropagation();
                                 openEdit(e);
                               }}
-                              className="truncate rounded-md px-2 py-1 text-xs font-medium text-white shadow-sm cursor-pointer"
+                              className={`truncate rounded-md px-2 py-1 text-xs font-medium text-white shadow-sm cursor-pointer flex items-center gap-1 ${
+                                pending ? "opacity-70 ring-1 ring-amber-400/60" : ""
+                              } ${rejected ? "line-through opacity-50" : ""}`}
                               style={{ backgroundColor: e.color }}
                             >
-                              {e.title}
+                              {pending && <Hourglass className="h-3 w-3 shrink-0" />}
+                              <span className="truncate">{e.title}</span>
                             </div>
                           </TooltipTrigger>
                           <TooltipContent
@@ -314,9 +362,32 @@ function CalendarPage() {
                               <UserIcon className="h-3 w-3" />
                               Agendado por <strong className="text-foreground">{author}</strong>
                             </div>
+                            {pastoral && (
+                              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                <Tag className="h-3 w-3" />
+                                {pastoral.name}
+                              </div>
+                            )}
                             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                               <Tag className="h-3 w-3" />
                               {categoryLabel(e.category)}
+                            </div>
+                            <div className="text-[11px]">
+                              {pending && (
+                                <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-amber-900">
+                                  <Hourglass className="h-3 w-3" /> Aguardando aprovação
+                                </span>
+                              )}
+                              {e.status === "aprovado" && (
+                                <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-900">
+                                  <Check className="h-3 w-3" /> Aprovado
+                                </span>
+                              )}
+                              {rejected && (
+                                <span className="inline-flex items-center gap-1 rounded bg-rose-100 px-1.5 py-0.5 text-rose-900">
+                                  <X className="h-3 w-3" /> Rejeitado
+                                </span>
+                              )}
                             </div>
                             {e.description && (
                               <p className="text-[11px] text-foreground/80 pt-1 border-t">
@@ -354,6 +425,32 @@ function CalendarPage() {
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   maxLength={200}
                 />
+              </div>
+              <div>
+                <Label>Pastoral</Label>
+                <Select
+                  value={form.pastoral_id}
+                  onValueChange={(v) => setForm({ ...form, pastoral_id: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a pastoral" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(isAdmin || canApproveEvents
+                      ? pastorais
+                      : pastorais.filter((p) => memberships.some((m) => m.pastoral_id === p.id))
+                    ).map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!isAdmin && !canApproveEvents && memberships.length === 0 && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    Você ainda não foi adicionado a nenhuma pastoral. Peça ao administrador.
+                  </p>
+                )}
               </div>
               <div>
                 <Label>Tipo de evento</Label>
@@ -417,22 +514,35 @@ function CalendarPage() {
                   ))}
                 </div>
               </div>
-              {editing && editing.user_id !== user?.id && (
-                <p className="text-xs text-muted-foreground">
-                  Criado por outro usuário — você não pode editar.
-                </p>
+              {editing && (
+                <div className="rounded-md border bg-secondary/40 px-3 py-2 text-xs">
+                  Status atual: <strong>{editing.status}</strong>
+                  {editing.user_id !== user?.id && !canEditEvent(editing) && (
+                    <span className="ml-2 text-muted-foreground">(somente leitura)</span>
+                  )}
+                </div>
               )}
             </div>
             <DialogFooter className="gap-2">
-              {editing && editing.user_id === user?.id && (
+              {editing && canEditEvent(editing) && (
                 <Button variant="ghost" onClick={remove} className="mr-auto text-destructive">
                   <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                </Button>
+              )}
+              {editing && canApproveEvents && editing.status !== "rejeitado" && (
+                <Button variant="outline" onClick={() => approve("rejeitado")}>
+                  <X className="mr-2 h-4 w-4" /> Rejeitar
+                </Button>
+              )}
+              {editing && canApproveEvents && editing.status !== "aprovado" && (
+                <Button variant="outline" onClick={() => approve("aprovado")}>
+                  <Check className="mr-2 h-4 w-4" /> Aprovar
                 </Button>
               )}
               <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancelar
               </Button>
-              {(!editing || editing.user_id === user?.id) && (
+              {(!editing || canEditEvent(editing)) && (
                 <Button onClick={save}>Salvar</Button>
               )}
             </DialogFooter>
