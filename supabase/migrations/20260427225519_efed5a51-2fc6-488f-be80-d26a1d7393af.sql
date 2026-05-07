@@ -205,3 +205,13 @@ to authenticated
 using (
   public.has_role(auth.uid(), 'admin')
 );
+
+-- =========================================================
+-- CREATE FIRST ADMIN USER
+-- =========================================================
+
+insert into public.user_roles (user_id, role)
+values (
+  '1cde0cf4-b7b0-4391-a24b-b23cb9482e71',
+  'admin'
+);
