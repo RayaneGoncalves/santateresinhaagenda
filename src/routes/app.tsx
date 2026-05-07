@@ -52,6 +52,22 @@ function AppLayout() {
                 Notas
               </Button>
             </Link>
+            {isAdmin && (
+              <>
+                <Link to="/app/pastorais">
+                  <Button variant="ghost" size="sm">
+                    <Users className="mr-2 h-4 w-4" />
+                    Pastorais
+                  </Button>
+                </Link>
+                <Link to="/app/usuarios">
+                  <Button variant="ghost" size="sm">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Usuários
+                  </Button>
+                </Link>
+              </>
+            )}
             <Button
               variant="ghost"
               size="sm"
