@@ -80,9 +80,12 @@ function fmtDateTime(iso: string) {
 
 function CalendarPage() {
   const { user } = useAuth();
+  const { canApproveEvents, isAdmin } = useUserRoles();
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
   const [events, setEvents] = useState<EventRow[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProfileRow>>({});
+  const [pastorais, setPastorais] = useState<Pastoral[]>([]);
+  const [memberships, setMemberships] = useState<Membership[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [open, setOpen] = useState(false);
@@ -94,6 +97,7 @@ function CalendarPage() {
     ends_at: toLocalInput(new Date(Date.now() + 60 * 60 * 1000)),
     color: COLORS[0],
     category: "outro",
+    pastoral_id: "",
   });
 
   const monthStart = useMemo(() => startOfMonth(cursor), [cursor]);
@@ -108,14 +112,22 @@ function CalendarPage() {
       .lt("starts_at", new Date(monthEnd.getTime() + 7 * 86400000).toISOString())
       .order("starts_at");
     if (error) toast.error(error.message);
-    else setEvents(data ?? []);
+    else setEvents((data ?? []) as EventRow[]);
 
-    const { data: profs } = await supabase.from("profiles").select("id, full_name");
+    const [{ data: profs }, { data: past }, { data: mems }] = await Promise.all([
+      supabase.from("profiles").select("id, full_name"),
+      supabase.from("pastorais").select("id, name, color").order("name"),
+      user
+        ? supabase.from("pastoral_members").select("pastoral_id, role").eq("user_id", user.id)
+        : Promise.resolve({ data: [] as Membership[] }),
+    ]);
     if (profs) {
       const map: Record<string, ProfileRow> = {};
       profs.forEach((p) => (map[p.id] = p));
       setProfiles(map);
     }
+    setPastorais(past ?? []);
+    setMemberships((mems ?? []) as Membership[]);
     setLoading(false);
   }
 
