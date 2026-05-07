@@ -1,8 +1,9 @@
 import { createFileRoute, Outlet, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { useUserRoles } from "@/lib/use-roles";
 import { Button } from "@/components/ui/button";
-import { LogOut, CalendarDays, NotebookPen, Church } from "lucide-react";
+import { LogOut, CalendarDays, NotebookPen, Church, Users, Shield } from "lucide-react";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/app")({
 
 function AppLayout() {
   const { user, loading, signOut } = useAuth();
+  const { isAdmin } = useUserRoles();
   const navigate = useNavigate();
 
   useEffect(() => {
