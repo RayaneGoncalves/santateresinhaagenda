@@ -190,6 +190,7 @@ function CalendarPage() {
       ends_at: toLocalInput(new Date(base.getTime() + 60 * 60 * 1000)),
       color: COLORS[0],
       category: "outro",
+      pastoral_id: memberships[0]?.pastoral_id ?? "",
     });
     setOpen(true);
   }
@@ -203,23 +204,35 @@ function CalendarPage() {
       ends_at: toLocalInput(new Date(ev.ends_at)),
       color: ev.color,
       category: ev.category ?? "outro",
+      pastoral_id: ev.pastoral_id ?? "",
     });
     setOpen(true);
   }
 
+  const canEditEvent = (ev: EventRow) => {
+    if (!user) return false;
+    if (ev.user_id === user.id) return true;
+    if (canApproveEvents) return true;
+    if (ev.pastoral_id && memberships.some((m) => m.pastoral_id === ev.pastoral_id && m.role === "coordenador"))
+      return true;
+    return false;
+  };
+
   async function save() {
     if (!user) return;
-    if (!form.title.trim()) {
-      toast.error("Título é obrigatório");
-      return;
-    }
-    const payload = {
+    if (!form.title.trim()) return toast.error("Título é obrigatório");
+    if (!form.pastoral_id) return toast.error("Selecione uma pastoral");
+    if (new Date(form.ends_at) <= new Date(form.starts_at))
+      return toast.error("Horário final deve ser após o inicial");
+
+    const payload: any = {
       title: form.title.trim().slice(0, 200),
       description: form.description.trim().slice(0, 2000) || null,
       starts_at: new Date(form.starts_at).toISOString(),
       ends_at: new Date(form.ends_at).toISOString(),
       color: form.color,
       category: form.category,
+      pastoral_id: form.pastoral_id,
       user_id: user.id,
     };
     if (editing) {
@@ -229,8 +242,29 @@ function CalendarPage() {
     } else {
       const { error } = await supabase.from("events").insert(payload);
       if (error) return toast.error(error.message);
-      toast.success("Evento criado");
+      toast.success(canApproveEvents ? "Evento criado" : "Evento enviado para aprovação");
     }
+    setOpen(false);
+    loadData();
+  }
+
+  async function remove() {
+    if (!editing) return;
+    const { error } = await supabase.from("events").delete().eq("id", editing.id);
+    if (error) return toast.error(error.message);
+    toast.success("Evento removido");
+    setOpen(false);
+    loadData();
+  }
+
+  async function approve(status: "aprovado" | "rejeitado") {
+    if (!editing) return;
+    const { error } = await supabase
+      .from("events")
+      .update({ status, approved_by: user!.id, approved_at: new Date().toISOString() })
+      .eq("id", editing.id);
+    if (error) return toast.error(error.message);
+    toast.success(status === "aprovado" ? "Evento aprovado" : "Evento rejeitado");
     setOpen(false);
     loadData();
   }
