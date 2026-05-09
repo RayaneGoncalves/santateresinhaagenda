@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useUserRoles } from "@/lib/use-roles";
-import { generateInviteLink, listUsers, setUserRole } from "@/server/admin.functions";
+import { deleteUser, generateInviteLink, listUsers, regenerateInviteLink, setUserRole } from "@/server/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Copy } from "lucide-react";
+import { Plus, Copy, Link2, Trash2, Search } from "lucide-react";
 
 export const Route = createFileRoute("/app/usuarios")({
   component: UsersPage,

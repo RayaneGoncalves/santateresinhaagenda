@@ -18,6 +18,7 @@ import { Route as AppUsuariosRouteImport } from './routes/app.usuarios'
 import { Route as AppPastoraisRouteImport } from './routes/app.pastorais'
 import { Route as AppNotesRouteImport } from './routes/app.notes'
 import { Route as AppLiturgicalRouteImport } from './routes/app.liturgical'
+import { Route as AppAprovacoesRouteImport } from './routes/app.aprovacoes'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -64,12 +65,18 @@ const AppLiturgicalRoute = AppLiturgicalRouteImport.update({
   path: '/liturgical',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAprovacoesRoute = AppAprovacoesRouteImport.update({
+  id: '/aprovacoes',
+  path: '/aprovacoes',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/app/aprovacoes': typeof AppAprovacoesRoute
   '/app/liturgical': typeof AppLiturgicalRoute
   '/app/notes': typeof AppNotesRoute
   '/app/pastorais': typeof AppPastoraisRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/app/aprovacoes': typeof AppAprovacoesRoute
   '/app/liturgical': typeof AppLiturgicalRoute
   '/app/notes': typeof AppNotesRoute
   '/app/pastorais': typeof AppPastoraisRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/app/aprovacoes': typeof AppAprovacoesRoute
   '/app/liturgical': typeof AppLiturgicalRoute
   '/app/notes': typeof AppNotesRoute
   '/app/pastorais': typeof AppPastoraisRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/auth'
     | '/reset-password'
+    | '/app/aprovacoes'
     | '/app/liturgical'
     | '/app/notes'
     | '/app/pastorais'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/app/aprovacoes'
     | '/app/liturgical'
     | '/app/notes'
     | '/app/pastorais'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/auth'
     | '/reset-password'
+    | '/app/aprovacoes'
     | '/app/liturgical'
     | '/app/notes'
     | '/app/pastorais'
@@ -205,10 +217,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLiturgicalRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/aprovacoes': {
+      id: '/app/aprovacoes'
+      path: '/aprovacoes'
+      fullPath: '/app/aprovacoes'
+      preLoaderRoute: typeof AppAprovacoesRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAprovacoesRoute: typeof AppAprovacoesRoute
   AppLiturgicalRoute: typeof AppLiturgicalRoute
   AppNotesRoute: typeof AppNotesRoute
   AppPastoraisRoute: typeof AppPastoraisRoute
@@ -217,6 +237,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAprovacoesRoute: AppAprovacoesRoute,
   AppLiturgicalRoute: AppLiturgicalRoute,
   AppNotesRoute: AppNotesRoute,
   AppPastoraisRoute: AppPastoraisRoute,
