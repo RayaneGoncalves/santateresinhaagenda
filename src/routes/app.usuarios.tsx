@@ -306,6 +306,37 @@ function UsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!resendLink} onOpenChange={(o) => !o && setResendLink(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Link gerado</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Envie este link para <strong>{resendLink?.email}</strong>. Ele expira em 1h.
+            </p>
+            <div className="flex gap-2">
+              <Input readOnly value={resendLink?.link ?? ""} className="text-xs" />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (resendLink?.link) {
+                    navigator.clipboard.writeText(resendLink.link);
+                    toast.success("Copiado");
+                  }
+                }}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setResendLink(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
