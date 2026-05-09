@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useUserRoles } from "@/lib/use-roles";
 import { Button } from "@/components/ui/button";
-import { LogOut, CalendarDays, NotebookPen, Church, Users, Shield } from "lucide-react";
+import { LogOut, CalendarDays, NotebookPen, Church, Users, Shield, CheckSquare } from "lucide-react";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -11,7 +11,7 @@ export const Route = createFileRoute("/app")({
 
 function AppLayout() {
   const { user, loading, signOut } = useAuth();
-  const { isAdmin } = useUserRoles();
+  const { isAdmin, canApproveEvents } = useUserRoles();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -52,6 +52,14 @@ function AppLayout() {
                 Notas
               </Button>
             </Link>
+            {canApproveEvents && (
+              <Link to="/app/aprovacoes">
+                <Button variant="ghost" size="sm">
+                  <CheckSquare className="mr-2 h-4 w-4" />
+                  Aprovações
+                </Button>
+              </Link>
+            )}
             {isAdmin && (
               <>
                 <Link to="/app/pastorais">
