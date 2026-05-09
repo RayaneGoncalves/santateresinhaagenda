@@ -124,6 +124,41 @@ export const setUserRole = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const regenerateInviteLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        email: z.string().trim().email().max(255),
+        redirect_to: z.string().url(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data: link, error } = await supabaseAdmin.auth.admin.generateLink({
+      type: "recovery",
+      email: data.email,
+      options: { redirectTo: data.redirect_to },
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, action_link: link.properties?.action_link };
+  });
+
+export const deleteUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ user_id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    if (data.user_id === context.userId)
+      throw new Error("Você não pode excluir sua própria conta.");
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const listUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
