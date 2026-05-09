@@ -105,6 +105,32 @@ function UsersPage() {
     }
   }
 
+  async function resend(email: string) {
+    try {
+      const res = await regenerateInviteLink({
+        data: { email, redirect_to: window.location.origin + "/reset-password" },
+      });
+      if (res.action_link) {
+        setResendLink({ email, link: res.action_link });
+        toast.success("Novo link gerado");
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    }
+  }
+
+  async function remove(userId: string, email?: string) {
+    if (!confirm(`Excluir definitivamente o usuário ${email ?? ""}? Esta ação não pode ser desfeita.`))
+      return;
+    try {
+      await deleteUser({ data: { user_id: userId } });
+      toast.success("Usuário removido");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    }
+  }
+
   if (rolesLoading) return <p className="text-muted-foreground">Carregando…</p>;
   if (!isAdmin)
     return (
