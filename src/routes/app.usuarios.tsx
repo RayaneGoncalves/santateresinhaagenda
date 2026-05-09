@@ -57,6 +57,8 @@ function UsersPage() {
   });
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [resendLink, setResendLink] = useState<{ email: string; link: string } | null>(null);
 
   async function load() {
     try {
