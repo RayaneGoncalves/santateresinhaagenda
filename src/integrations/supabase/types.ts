@@ -25,6 +25,9 @@ export type Database = {
           ends_at: string
           id: string
           pastoral_id: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
           starts_at: string
           status: Database["public"]["Enums"]["event_status"]
           title: string
@@ -41,6 +44,9 @@ export type Database = {
           ends_at: string
           id?: string
           pastoral_id?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           starts_at: string
           status?: Database["public"]["Enums"]["event_status"]
           title: string
@@ -57,6 +63,9 @@ export type Database = {
           ends_at?: string
           id?: string
           pastoral_id?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           starts_at?: string
           status?: Database["public"]["Enums"]["event_status"]
           title?: string

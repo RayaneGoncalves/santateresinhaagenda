@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, Users } from "lucide-react";
+import { Plus, Trash2, Users, Search } from "lucide-react";
 
 export const Route = createFileRoute("/app/pastorais")({
   component: PastoraisPage,
@@ -52,6 +52,7 @@ function PastoraisPage() {
 
   const [memberOpen, setMemberOpen] = useState<Pastoral | null>(null);
   const [newMember, setNewMember] = useState({ user_id: "", role: "membro" as "coordenador" | "membro" });
+  const [search, setSearch] = useState("");
 
   async function load() {
     const [{ data: p }, { data: m }, { data: pr }] = await Promise.all([
@@ -141,8 +142,20 @@ function PastoraisPage() {
         </Button>
       </div>
 
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar pastoral…"
+          className="pl-9"
+        />
+      </div>
+
       <div className="grid gap-3 md:grid-cols-2">
-        {pastorais.map((p) => (
+        {pastorais
+          .filter((p) => !search.trim() || p.name.toLowerCase().includes(search.trim().toLowerCase()))
+          .map((p) => (
           <div key={p.id} className="rounded-2xl border bg-card p-4 shadow-[var(--shadow-card)]">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2">
