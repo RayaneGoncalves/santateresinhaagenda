@@ -154,6 +154,16 @@ function UsersPage() {
         </Button>
       </div>
 
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por nome ou e-mail…"
+          className="pl-9"
+        />
+      </div>
+
       <div className="overflow-hidden rounded-2xl border bg-card shadow-[var(--shadow-card)]">
         <table className="w-full text-sm">
           <thead className="bg-secondary/40 text-xs uppercase tracking-wide text-muted-foreground">
@@ -162,37 +172,68 @@ function UsersPage() {
               <th className="px-3 py-2 text-left">Email</th>
               <th className="px-3 py-2 text-left">Papel</th>
               <th className="px-3 py-2 text-left">Último acesso</th>
+              <th className="px-3 py-2 text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => {
-              const primary = r.roles.find((x) => x !== "user") ?? "user";
-              return (
-                <tr key={r.id} className="border-t">
-                  <td className="px-3 py-2">{r.full_name ?? "—"}</td>
-                  <td className="px-3 py-2">{r.email}</td>
-                  <td className="px-3 py-2">
-                    <Select value={primary} onValueChange={(v) => changeRole(r.id, v)}>
-                      <SelectTrigger className="h-8 w-[180px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ROLE_OPTIONS.map((o) => (
-                          <SelectItem key={o.value} value={o.value}>
-                            {o.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground">
-                    {r.last_sign_in_at
-                      ? new Date(r.last_sign_in_at).toLocaleString("pt-BR")
-                      : "Nunca"}
-                  </td>
-                </tr>
-              );
-            })}
+            {rows
+              .filter((r) => {
+                const q = search.trim().toLowerCase();
+                if (!q) return true;
+                return (
+                  (r.full_name ?? "").toLowerCase().includes(q) ||
+                  (r.email ?? "").toLowerCase().includes(q)
+                );
+              })
+              .map((r) => {
+                const primary = r.roles.find((x) => x !== "user") ?? "user";
+                const neverLogged = !r.last_sign_in_at;
+                return (
+                  <tr key={r.id} className="border-t">
+                    <td className="px-3 py-2">{r.full_name ?? "—"}</td>
+                    <td className="px-3 py-2">{r.email}</td>
+                    <td className="px-3 py-2">
+                      <Select value={primary} onValueChange={(v) => changeRole(r.id, v)}>
+                        <SelectTrigger className="h-8 w-[180px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ROLE_OPTIONS.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground">
+                      {r.last_sign_in_at
+                        ? new Date(r.last_sign_in_at).toLocaleString("pt-BR")
+                        : <span className="text-amber-600">Nunca acessou</span>}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title={neverLogged ? "Reenviar link de cadastro" : "Enviar link para redefinir senha"}
+                          onClick={() => r.email && resend(r.email)}
+                        >
+                          <Link2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Excluir usuário"
+                          onClick={() => remove(r.id, r.email)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
