@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useUserRoles } from "@/lib/use-roles";
-import { deleteUser, generateInviteLink, listUsers, regenerateInviteLink, setUserRole } from "@/server/admin.functions";
+import { deleteUser, generateInviteLink, listUsers, regenerateInviteLink, setUserRole } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

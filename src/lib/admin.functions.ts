@@ -1,16 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
-
-async function assertAdmin(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("has_role", {
-    _user_id: userId,
-    _role: "admin",
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Apenas administradores podem fazer isso.");
-}
 
 // Invite a new user — admin sends email + chooses initial role.
 export const inviteUser = createServerFn({ method: "POST" })
@@ -26,6 +16,8 @@ export const inviteUser = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { assertAdmin } = await import("./admin.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await assertAdmin(context.supabase, context.userId);
 
     const { data: invite, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, {
@@ -64,6 +56,8 @@ export const generateInviteLink = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { assertAdmin } = await import("./admin.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await assertAdmin(context.supabase, context.userId);
 
     // 1. ensure user exists
@@ -114,6 +108,8 @@ export const setUserRole = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { assertAdmin } = await import("./admin.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await assertAdmin(context.supabase, context.userId);
     // remove existing global roles, set new one
     await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
@@ -135,6 +131,8 @@ export const regenerateInviteLink = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { assertAdmin } = await import("./admin.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await assertAdmin(context.supabase, context.userId);
     const { data: link, error } = await supabaseAdmin.auth.admin.generateLink({
       type: "recovery",
@@ -151,6 +149,8 @@ export const deleteUser = createServerFn({ method: "POST" })
     z.object({ user_id: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { assertAdmin } = await import("./admin.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await assertAdmin(context.supabase, context.userId);
     if (data.user_id === context.userId)
       throw new Error("Você não pode excluir sua própria conta.");
@@ -162,6 +162,8 @@ export const deleteUser = createServerFn({ method: "POST" })
 export const listUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const { assertAdmin } = await import("./admin.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await assertAdmin(context.supabase, context.userId);
     const { data: users } = await supabaseAdmin.auth.admin.listUsers();
     const { data: profiles } = await supabaseAdmin.from("profiles").select("id, full_name");
