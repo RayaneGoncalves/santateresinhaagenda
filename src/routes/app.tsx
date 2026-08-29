@@ -1,7 +1,8 @@
 import { createFileRoute, Outlet, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useUserRoles } from "@/lib/use-roles";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut, CalendarDays, NotebookPen, Church, Users, Shield, CheckSquare } from "lucide-react";
 
@@ -13,12 +14,27 @@ function AppLayout() {
   const { user, loading, signOut } = useAuth();
   const { isAdmin, canApproveEvents } = useUserRoles();
   const navigate = useNavigate();
+  const [mustChange, setMustChange] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
   }, [user, loading, navigate]);
 
-  if (loading || !user) {
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("must_change_password")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        const flag = Boolean(data?.must_change_password);
+        setMustChange(flag);
+        if (flag) navigate({ to: "/definir-senha" });
+      });
+  }, [user, navigate]);
+
+  if (loading || !user || mustChange === null || mustChange) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted-foreground">
         Carregando…
