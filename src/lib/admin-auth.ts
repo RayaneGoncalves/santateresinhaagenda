@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createMiddleware } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
+import { supabase as browserSupabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 type AdminAuthContext = {
@@ -12,8 +13,19 @@ function authenticationError(message: string): Error {
   return new Error(`Sessão inválida: ${message}. Entre novamente e tente de novo.`);
 }
 
-export const requireAdminAuth = createMiddleware({ type: "function" }).server(
-  async ({ next }) => {
+export const requireAdminAuth = createMiddleware({ type: "function" })
+  .client(async ({ next }) => {
+    if (typeof window === "undefined") return next();
+
+    const { data, error } = await browserSupabase.auth.getSession();
+    if (error) throw authenticationError("não foi possível ler a credencial");
+
+    const token = data.session?.access_token;
+    if (!token) throw authenticationError("credencial ausente");
+
+    return next({ headers: { Authorization: `Bearer ${token}` } });
+  })
+  .server(async ({ next }) => {
     const supabaseUrl = process.env["SUPABASE_URL"];
     const publishableKey = process.env["SUPABASE_PUBLISHABLE_KEY"];
     if (!supabaseUrl || !publishableKey) {
@@ -49,5 +61,4 @@ export const requireAdminAuth = createMiddleware({ type: "function" }).server(
     if (!isAdmin) throw new Error("Apenas administradores podem fazer isso.");
 
     return next({ context: { supabase, userId } satisfies AdminAuthContext });
-  },
-);
+  });
