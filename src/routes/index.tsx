@@ -31,10 +31,7 @@ function Index() {
         </Link>
         <nav className="flex items-center gap-3">
           <Link to="/auth">
-            <Button variant="ghost">Entrar</Button>
-          </Link>
-          <Link to="/auth">
-            <Button>Criar conta</Button>
+            <Button>Entrar</Button>
           </Link>
         </nav>
       </header>
@@ -52,15 +49,13 @@ function Index() {
               Marque eventos no calendário compartilhado e guarde suas ideias num bloco
               de notas pessoal — tudo num só lugar, com um toque acolhedor.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link to="/auth">
-                <Button size="lg">Começar agora</Button>
+                <Button size="lg">Entrar com meu celular</Button>
               </Link>
-              <Link to="/auth">
-                <Button size="lg" variant="outline">
-                  Já tenho conta
-                </Button>
-              </Link>
+              <p className="text-sm text-muted-foreground">
+                Os acessos são criados pela secretaria da paróquia.
+              </p>
             </div>
           </div>
           <div className="relative">
