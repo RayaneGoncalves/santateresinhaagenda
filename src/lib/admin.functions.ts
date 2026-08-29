@@ -1,9 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAdminAuth } from "@/lib/admin-auth";
+import { adminRoleSchema } from "@/lib/admin-schemas";
 import { normalizePhone, phoneToLoginEmail } from "@/lib/phone";
-
-const roleEnum = z.enum(["user", "admin", "padre", "coordenacao", "coordenador"]);
 
 /**
  * Cria o acesso de uma pessoa usando apenas nome + celular.
@@ -11,22 +10,21 @@ const roleEnum = z.enum(["user", "admin", "padre", "coordenacao", "coordenador"]
  * A pessoa é obrigada a definir a própria senha no primeiro acesso.
  */
 export const createAccess = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAdminAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
         full_name: z.string().trim().min(1).max(120),
         phone: z.string().trim().min(8).max(25),
-        role: roleEnum.default("user"),
+        role: adminRoleSchema.default("user"),
         pastoral_id: z.string().uuid().nullable().optional(),
         pastoral_role: z.enum(["coordenador", "membro"]).default("membro"),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { assertAdmin, generateTempPassword } = await import("./admin.server");
+    const { generateTempPassword } = await import("./admin.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await assertAdmin(context.supabase, context.userId);
 
     const phone = normalizePhone(data.phone);
     if (!phone) throw new Error("Celular inválido. Use DDD + número, ex.: (11) 99999-8888.");
@@ -81,14 +79,13 @@ export const createAccess = createServerFn({ method: "POST" })
 
 /** Gera uma nova senha temporária para quem esqueceu ou perdeu a senha. */
 export const resetTempPassword = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAdminAuth])
   .inputValidator((input: unknown) =>
     z.object({ user_id: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { assertAdmin, generateTempPassword } = await import("./admin.server");
+    const { generateTempPassword } = await import("./admin.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await assertAdmin(context.supabase, context.userId);
 
     const tempPassword = generateTempPassword();
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
@@ -105,14 +102,12 @@ export const resetTempPassword = createServerFn({ method: "POST" })
   });
 
 export const setUserRole = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAdminAuth])
   .inputValidator((input: unknown) =>
-    z.object({ user_id: z.string().uuid(), role: roleEnum }).parse(input),
+    z.object({ user_id: z.string().uuid(), role: adminRoleSchema }).parse(input),
   )
-  .handler(async ({ data, context }) => {
-    const { assertAdmin } = await import("./admin.server");
+  .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await assertAdmin(context.supabase, context.userId);
     await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
     const { error } = await supabaseAdmin
       .from("user_roles")
@@ -122,14 +117,12 @@ export const setUserRole = createServerFn({ method: "POST" })
   });
 
 export const deleteUser = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAdminAuth])
   .inputValidator((input: unknown) =>
     z.object({ user_id: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { assertAdmin } = await import("./admin.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await assertAdmin(context.supabase, context.userId);
     if (data.user_id === context.userId)
       throw new Error("Você não pode excluir sua própria conta.");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
@@ -139,7 +132,7 @@ export const deleteUser = createServerFn({ method: "POST" })
 
 /** Link de recuperação — só faz sentido para os acessos criados com e-mail real. */
 export const regenerateInviteLink = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAdminAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -148,10 +141,8 @@ export const regenerateInviteLink = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data, context }) => {
-    const { assertAdmin } = await import("./admin.server");
+  .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await assertAdmin(context.supabase, context.userId);
     const { data: link, error } = await supabaseAdmin.auth.admin.generateLink({
       type: "recovery",
       email: data.email,
@@ -162,11 +153,9 @@ export const regenerateInviteLink = createServerFn({ method: "POST" })
   });
 
 export const listUsers = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { assertAdmin } = await import("./admin.server");
+  .middleware([requireAdminAuth])
+  .handler(async () => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await assertAdmin(context.supabase, context.userId);
 
     const { data: users } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
     const { data: profiles } = await supabaseAdmin
