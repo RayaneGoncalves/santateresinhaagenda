@@ -1,9 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/admin-auth";
+import { adminRoleSchema } from "@/lib/admin-schemas";
 import { normalizePhone, phoneToLoginEmail } from "@/lib/phone";
-
-const roleEnum = z.enum(["user", "admin", "padre", "coordenacao", "coordenador"]);
 
 /**
  * Cria o acesso de uma pessoa usando apenas nome + celular.
@@ -17,7 +16,7 @@ export const createAccess = createServerFn({ method: "POST" })
       .object({
         full_name: z.string().trim().min(1).max(120),
         phone: z.string().trim().min(8).max(25),
-        role: roleEnum.default("user"),
+        role: adminRoleSchema.default("user"),
         pastoral_id: z.string().uuid().nullable().optional(),
         pastoral_role: z.enum(["coordenador", "membro"]).default("membro"),
       })
@@ -105,7 +104,7 @@ export const resetTempPassword = createServerFn({ method: "POST" })
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireAdminAuth])
   .inputValidator((input: unknown) =>
-    z.object({ user_id: z.string().uuid(), role: roleEnum }).parse(input),
+    z.object({ user_id: z.string().uuid(), role: adminRoleSchema }).parse(input),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
