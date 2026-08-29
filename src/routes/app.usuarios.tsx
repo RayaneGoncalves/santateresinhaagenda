@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useServerFn } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useUserRoles } from "@/lib/use-roles";
 import { supabase } from "@/integrations/supabase/client";
@@ -90,6 +90,11 @@ const EMPTY_FORM: NewAccess = {
 
 function UsersPage() {
   const { isAdmin, loading: rolesLoading } = useUserRoles();
+  const listUsersFn = useServerFn(listUsers);
+  const createAccessFn = useServerFn(createAccess);
+  const setUserRoleFn = useServerFn(setUserRole);
+  const resetTempPasswordFn = useServerFn(resetTempPassword);
+  const deleteUserFn = useServerFn(deleteUser);
   const [rows, setRows] = useState<Row[]>([]);
   const [pastorais, setPastorais] = useState<Pastoral[]>([]);
   const [open, setOpen] = useState(false);
@@ -104,7 +109,7 @@ function UsersPage() {
 
   async function load() {
     try {
-      const data = await listUsers();
+      const data = await listUsersFn();
       setRows(data);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Erro ao carregar");
@@ -149,7 +154,7 @@ function UsersPage() {
 
     setBusy(true);
     try {
-      const res = await createAccess({
+      const res = await createAccessFn({
         data: {
           full_name: form.full_name.trim(),
           phone: form.phone,
@@ -176,7 +181,7 @@ function UsersPage() {
 
   async function changeRole(userId: string, role: string) {
     try {
-      await setUserRole({ data: { user_id: userId, role: role as AppRoleValue } });
+      await setUserRoleFn({ data: { user_id: userId, role: role as AppRoleValue } });
       toast.success("Papel atualizado");
       load();
     } catch (e: unknown) {
@@ -187,7 +192,7 @@ function UsersPage() {
   async function newPassword(row: Row) {
     if (!confirm(`Gerar uma nova senha temporária para ${row.full_name ?? "esta pessoa"}?`)) return;
     try {
-      const res = await resetTempPassword({ data: { user_id: row.id } });
+      const res = await resetTempPasswordFn({ data: { user_id: row.id } });
       setCredential({
         name: row.full_name ?? "",
         phone: row.phone ?? "",
@@ -208,7 +213,7 @@ function UsersPage() {
     )
       return;
     try {
-      await deleteUser({ data: { user_id: row.id } });
+      await deleteUserFn({ data: { user_id: row.id } });
       toast.success("Acesso removido");
       load();
     } catch (e: unknown) {
