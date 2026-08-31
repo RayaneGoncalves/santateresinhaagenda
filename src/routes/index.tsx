@@ -20,7 +20,9 @@ function Index() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/app" });
+    if (!loading) {
+      navigate({ to: user ? "/app" : "/auth", replace: true });
+    }
   }, [user, loading, navigate]);
 
   return (
