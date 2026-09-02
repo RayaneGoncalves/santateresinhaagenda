@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useUserRoles } from "@/lib/use-roles";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { LogOut, CalendarDays, NotebookPen, Church, Users, Shield, CheckSquare } from "lucide-react";
 import {
   Sidebar,
@@ -100,14 +99,14 @@ function AppSidebar({ isAdmin, canApproveEvents, onSignOut }: AppSidebarProps) {
     if (isMobile) setOpenMobile(false);
   };
 
-  const items = [
+  const items = ([
     { label: "Calendário", to: "/app", icon: CalendarDays, visible: true },
     { label: "Calendário litúrgico", to: "/app/liturgical", icon: Church, visible: true },
     { label: "Notas", to: "/app/notes", icon: NotebookPen, visible: true },
     { label: "Aprovações", to: "/app/aprovacoes", icon: CheckSquare, visible: canApproveEvents },
     { label: "Pastorais", to: "/app/pastorais", icon: Users, visible: isAdmin },
     { label: "Usuários", to: "/app/usuarios", icon: Shield, visible: isAdmin },
-  ].filter((item) => item.visible);
+  ] as const).filter((item) => item.visible);
 
   return (
     <Sidebar side="left" collapsible="icon">
