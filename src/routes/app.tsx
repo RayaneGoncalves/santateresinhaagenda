@@ -1,10 +1,26 @@
-import { createFileRoute, Outlet, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useUserRoles } from "@/lib/use-roles";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { LogOut, CalendarDays, NotebookPen, Church, Users, Shield, CheckSquare } from "lucide-react";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+  useSidebar,
+} from "@/components/ui/sidebar";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -43,73 +59,105 @@ function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
-          <Link to="/app" className="font-display text-2xl font-semibold text-primary">
-            Agenda
-          </Link>
-          <nav className="flex items-center gap-1">
-            <Link to="/app">
-              <Button variant="ghost" size="sm">
-                <CalendarDays className="mr-2 h-4 w-4" />
-                Calendário
-              </Button>
-            </Link>
-            <Link to="/app/liturgical">
-              <Button variant="ghost" size="sm">
-                <Church className="mr-2 h-4 w-4" />
-                Litúrgico
-              </Button>
-            </Link>
-            <Link to="/app/notes">
-              <Button variant="ghost" size="sm">
-                <NotebookPen className="mr-2 h-4 w-4" />
-                Notas
-              </Button>
-            </Link>
-            {canApproveEvents && (
-              <Link to="/app/aprovacoes">
-                <Button variant="ghost" size="sm">
-                  <CheckSquare className="mr-2 h-4 w-4" />
-                  Aprovações
-                </Button>
-              </Link>
-            )}
-            {isAdmin && (
-              <>
-                <Link to="/app/pastorais">
-                  <Button variant="ghost" size="sm">
-                    <Users className="mr-2 h-4 w-4" />
-                    Pastorais
-                  </Button>
-                </Link>
-                <Link to="/app/usuarios">
-                  <Button variant="ghost" size="sm">
-                    <Shield className="mr-2 h-4 w-4" />
-                    Usuários
-                  </Button>
-                </Link>
-              </>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={async () => {
-                await signOut();
-                navigate({ to: "/" });
-              }}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Sair
-            </Button>
-          </nav>
-        </div>
-      </header>
+    <SidebarProvider>
+      <AppSidebar
+        isAdmin={isAdmin}
+        canApproveEvents={canApproveEvents}
+        onSignOut={async () => {
+          await signOut();
+          navigate({ to: "/" });
+        }}
+      />
+      <SidebarInset className="min-w-0">
+        <header className="sticky top-0 z-30 grid h-14 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b bg-background/90 px-4 backdrop-blur md:px-6">
+          <SidebarTrigger className="h-9 w-9" />
+          <h1 className="truncate font-display text-lg font-semibold text-foreground md:text-xl">
+            Agenda Paroquial
+          </h1>
+        </header>
+        <main className="w-full min-w-0 flex-1 px-3 py-4 sm:px-4 md:px-6 md:py-6">
+          <div className="mx-auto w-full max-w-7xl">
+            <Outlet />
+          </div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
+  );
+}
 
-      <main className="mx-auto max-w-7xl px-4 py-6 md:px-6">
-        <Outlet />
-      </main>
-    </div>
+type AppSidebarProps = {
+  isAdmin: boolean;
+  canApproveEvents: boolean;
+  onSignOut: () => Promise<void>;
+};
+
+function AppSidebar({ isAdmin, canApproveEvents, onSignOut }: AppSidebarProps) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  const closeMobileMenu = () => {
+    if (isMobile) setOpenMobile(false);
+  };
+
+  const items = ([
+    { label: "Calendário", to: "/app", icon: CalendarDays, visible: true },
+    { label: "Calendário litúrgico", to: "/app/liturgical", icon: Church, visible: true },
+    { label: "Notas", to: "/app/notes", icon: NotebookPen, visible: true },
+    { label: "Aprovações", to: "/app/aprovacoes", icon: CheckSquare, visible: canApproveEvents },
+    { label: "Pastorais", to: "/app/pastorais", icon: Users, visible: isAdmin },
+    { label: "Usuários", to: "/app/usuarios", icon: Shield, visible: isAdmin },
+  ] as const).filter((item) => item.visible);
+
+  return (
+    <Sidebar side="left" collapsible="icon">
+      <SidebarHeader className="border-b p-3">
+        <Link
+          to="/app"
+          onClick={closeMobileMenu}
+          className="flex h-10 min-w-0 items-center gap-3 overflow-hidden px-1 text-primary"
+        >
+          <Church className="h-6 w-6 shrink-0" />
+          <span className="truncate font-display text-xl font-semibold group-data-[collapsible=icon]:hidden">
+            Santa Teresinha
+          </span>
+        </Link>
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Navegação</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {items.map((item) => {
+                const active =
+                  item.to === "/app" ? pathname === "/app" || pathname === "/app/" : pathname === item.to;
+                return (
+                  <SidebarMenuItem key={item.to}>
+                    <SidebarMenuButton asChild isActive={active} tooltip={item.label} size="lg">
+                      <Link to={item.to} onClick={closeMobileMenu}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="border-t p-2">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Sair" size="lg" onClick={onSignOut}>
+              <LogOut />
+              <span>Sair</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
   );
 }
